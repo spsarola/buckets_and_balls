@@ -124,7 +124,7 @@ class BucketController extends Controller
             $originalBucket = $buckets;
             $originalBallSizes = $ballSizes;
 
-            if (1) {
+            if (0) {
                 return response()->json([
                     "response" => "success",
                     "balls" => $balls,
@@ -151,7 +151,7 @@ class BucketController extends Controller
                         $SuggestBucket[] = $inserData;
                         SuggestBucket::create($inserData);
                         $SuggestBucket[] = array_merge($inserData, ['note' => 'main if']);
-                        $ball['qty'] = 0;
+                        $ballSizes[$ballKey]['qty'] = $ball['qty'] = 0;
                         /**Need to remove bucket because its full */
                         unset($buckets[$key]);
                         break; //we break here due to all ball placed in the bucket now we need to take anohter balls
@@ -163,7 +163,7 @@ class BucketController extends Controller
                         $inserData = ['bucket_id' => $bucket['id'], 'ball_id' => $ball['id'], 'qty' => $ball['qty'], 'volume' => $total_value];
                         $SuggestBucket[] = array_merge($inserData, ['note' => '1st else if']);
                         SuggestBucket::create($inserData);
-                        $ball['qty'] = 0;
+                        $ballSizes[$ballKey]['qty'] = $ball['qty'] = 0;
 
                         break; //we break here due to all ball placed in the bucket now we need to take anohter balls
                     } elseif ($total_value > $bucket['volume']) {
@@ -175,7 +175,8 @@ class BucketController extends Controller
                             SuggestBucket::create($inserData);
                             $SuggestBucket[] = array_merge($inserData, ['note' => 'last else if']);
                             //**Need to update total value because still some ball we need to put in another bucket*/
-                            $ball['qty'] -= $occupiedQty;
+                            $ballSizes[$ballKey]['qty'] = $ball['qty'] = $ball['qty'] - $occupiedQty;
+
                             $buckets[$key]['volume'] -= $occupiedTotalValue;
                             $total_value = number_format($ball['qty'] * $ball['size'], 2, '.', '');
                         }
@@ -183,6 +184,8 @@ class BucketController extends Controller
                 }
             }
 
+            $getWarningMessage = $this->getWarningMessage($ballSizes);
+            
             return response()->json([
                 "response" => "success",
                 "balls" => $balls,
@@ -192,6 +195,7 @@ class BucketController extends Controller
                 "ballSizes" => $ballSizes,
                 "totalBallSizes" => $totalBallSizes,
                 "SuggestBucket" => $SuggestBucket,
+                "getWarningMessage" => $getWarningMessage
             ], 200);
         } catch (Exception $e) {
             return response()->json([
@@ -199,6 +203,29 @@ class BucketController extends Controller
                 "message" => $e->getMessage(),
                 "trace" => $e->getTrace()
             ], 500);
+        }
+    }
+
+    private function getWarningMessage($ballSizes)
+    {
+        $finalMessage = "";
+        $message = "";
+        $messages = [];
+        $numberOfBallNotPlace = 0;
+        foreach ($ballSizes as $ball) {
+            $ballStr = Str::plural('ball', $ball['qty']);
+            $color = ucfirst($ball['color']);
+            if ($ball['qty'] > 0) {
+                $message .= " {$ball['qty']} {$color} {$ballStr} and";
+                $numberOfBallNotPlace++;
+            }
+        }
+
+        if ($message != '') {
+            return trim($message, "and") . Str::plural('is', $numberOfBallNotPlace)
+                . " not place due to either all bucket fulls or not required space is empty to any bucket.";
+        } else {
+            return '';
         }
     }
 

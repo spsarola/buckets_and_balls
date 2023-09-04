@@ -67,6 +67,9 @@
                 <div class="card-body" id="resultBody">
                    
                 </div>
+                <div class="alert alert-danger" id="fullBucketErrorMessageDiv" style="display:none;">
+                    <strong>Warning!</strong>&nbsp;<span id="fullBucketErrorMessage"></span>
+                </div>
             </div>
         </div>
     </div>
@@ -228,6 +231,13 @@
                 },
                 success: function(response) {
                     suggestedBucketsList();
+
+                    if(response['getWarningMessage'] != ''){
+                        $("#fullBucketErrorMessageDiv").show();
+                        $("#fullBucketErrorMessage").html(response['getWarningMessage']);
+                    }else{
+                        $("#fullBucketErrorMessageDiv").hide();
+                    }
                     $("#suggestBucketsFrm")[0].reset();
                 },
                 error: function(xhr, exception) {
